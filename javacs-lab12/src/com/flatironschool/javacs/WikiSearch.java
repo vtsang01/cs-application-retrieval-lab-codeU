@@ -8,6 +8,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.Iterator; 
 
 import redis.clients.jedis.Jedis;
 
@@ -46,7 +48,7 @@ public class WikiSearch {
 	 * 
 	 * @param map
 	 */
-	private  void print() {
+	private void print() {
 		List<Entry<String, Integer>> entries = sort();
 		for (Entry<String, Integer> entry: entries) {
 			System.out.println(entry);
@@ -60,8 +62,25 @@ public class WikiSearch {
 	 * @return New WikiSearch object.
 	 */
 	public WikiSearch or(WikiSearch that) {
-        // FILL THIS IN!
-		return null;
+        	Map<String, Integer> temp_map = new HashMap<String, Integer>(); 
+        	temp_map.putAll(map);
+
+        	Set<String> keys = that.map.keySet(); 
+
+        	for (String key : keys){
+	        	if (temp_map.containsKey(key)){
+				Integer value1 = temp_map.get(key); 
+				Integer value2 = that.map.get(key); 
+				Integer total = totalRelevance(value1, value2);
+				temp_map.put(key, total); 
+				continue; 
+			}
+			Integer val = that.map.get(key);
+			temp_map.put(key, val);
+        	}
+
+        	WikiSearch union = new WikiSearch(temp_map); 
+		return union;
 	}
 	
 	/**
@@ -71,8 +90,19 @@ public class WikiSearch {
 	 * @return New WikiSearch object.
 	 */
 	public WikiSearch and(WikiSearch that) {
-        // FILL THIS IN!
-		return null;
+        	Map<String, Integer> temp_map = new HashMap<String, Integer>();
+        	Set<String> keys = that.map.keySet(); 
+
+        	for (String key : keys){
+        		if (map.containsKey(key)){
+        			Integer value1 = map.get(key); 
+        			Integer value2 = that.map.get(key); 
+        			Integer total = totalRelevance(value1, value2);
+        			temp_map.put(key, total); 
+        		}
+        	}
+        	WikiSearch intersection = new WikiSearch(temp_map);
+		return intersection;
 	}
 	
 	/**
@@ -82,8 +112,18 @@ public class WikiSearch {
 	 * @return New WikiSearch object.
 	 */
 	public WikiSearch minus(WikiSearch that) {
-        // FILL THIS IN!
-		return null;
+        	Map<String, Integer> temp_map = new HashMap<String, Integer>();;
+        	Set<String> keys = map.keySet();  
+
+        	for (String key : keys){
+        		if (that.map.containsKey(key)){
+        			continue; 
+        		}
+        		Integer value = map.get(key); 
+        		temp_map.put(key, value); 
+        	}
+        	WikiSearch diff = new WikiSearch(temp_map);
+		return diff;
 	}
 	
 	/**
@@ -104,8 +144,31 @@ public class WikiSearch {
 	 * @return List of entries with URL and relevance.
 	 */
 	public List<Entry<String, Integer>> sort() {
-        // FILL THIS IN!
-		return null;
+        	Comparator<Entry<String, Integer>> comparator = new Comparator<Entry<String, Integer>>() {
+			@Override
+			public int compare(Entry<String, Integer> one, Entry<String, Integer> two) {
+				if (one.getValue() < two.getValue()) {
+			    		return -1;
+				}
+				if (one.getValue() > two.getValue()) {
+				    return 1;
+				}
+				return 0;
+			}
+	        };
+
+		List<Entry<String, Integer>> list = new LinkedList<Entry<String, Integer>>();  
+		 // Get a set of the entries
+      		Set set = map.entrySet();
+      		// Get an iterator
+      		Iterator i = set.iterator();
+      		// Display elements
+      		while(i.hasNext()) {
+         		Entry<String, Integer> entry = (Entry<String, Integer>)i.next();
+         		list.add(entry); 
+      		}
+      		Collections.sort(list, comparator);
+      		return list;
 	}
 
 	/**
